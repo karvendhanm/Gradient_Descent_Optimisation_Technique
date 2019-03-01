@@ -84,7 +84,7 @@ def compute_loss(X, y, w):
 
     return (loss / len(y))
 
-
+# the function below calculates the full batch gradient.
 def compute_grad(X, y, w):
     """
     Given feature matrix X [n_samples,6], target vector [n_samples] of 1/0,
@@ -101,6 +101,142 @@ def compute_grad(X, y, w):
             temp_grad += (res_val - probability(X[idx_1,:],w))*(X[idx_1, idx])
         gradient[idx] = -1 * (1/m) * temp_grad
     return gradient
+
+dummy_weights = np.linspace(-1, 1, 6)
+
+h = 0.01  # learning rate
+x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
+
+
+def visualize(X, y, w, history):
+    """draws classifier prediction with matplotlib magic"""
+    Z = probability(expand(np.c_[xx.ravel(), yy.ravel()]), w)
+    Z = Z.reshape(xx.shape)
+    plt.subplot(1, 2, 1)
+    plt.contourf(xx, yy, Z, alpha=0.8)
+    plt.scatter(X[:, 0], X[:, 1], c=y, cmap=plt.cm.Paired)
+    plt.xlim(xx.min(), xx.max())
+    plt.ylim(yy.min(), yy.max())
+
+    plt.subplot(1, 2, 2)
+    plt.plot(history)
+    plt.grid()
+    ymin, ymax = plt.ylim()
+    plt.ylim(0, ymax)
+    plt.show()
+
+visualize(X, y, dummy_weights, [0.5, 0.5, 0.25])
+
+# Mini-batch SGD
+np.random.seed(42)
+w = np.array([0, 0, 0, 0, 0, 1])
+
+eta= 0.1 # learning rate
+
+n_iter = 100
+batch_size = 4
+loss = np.zeros(n_iter)
+plt.figure(figsize=(12, 5))
+
+for i in range(n_iter):
+    ind = np.random.choice(X_expanded.shape[0], batch_size)
+    loss[i] = compute_loss(X_expanded, y, w)
+    if i % 10 == 0:
+        visualize(X_expanded[ind, :], y[ind], w, loss)
+
+    gradient = compute_grad(X_expanded[ind, :], y[ind], w)
+    w = w - (eta*gradient)
+
+visualize(X, y, w, loss)
+plt.clf()
+
+# SGD with momentum
+np.random.seed(42)
+w = np.array([0, 0, 0, 0, 0, 1])
+
+eta = 0.05 # learning rate
+alpha = 0.9 # momentum
+nu = np.zeros_like(w)
+
+n_iter = 100
+batch_size = 4
+loss = np.zeros(n_iter)
+plt.figure(figsize=(12, 5))
+
+h_t = 0 # momentum
+
+for i in range(n_iter):
+    ind = np.random.choice(X_expanded.shape[0], batch_size)
+    loss[i] = compute_loss(X_expanded, y, w)
+    if i % 10 == 0:
+        visualize(X_expanded[ind, :], y[ind], w, loss)
+
+    h_t = (alpha * h_t) + (eta * compute_grad(X_expanded[ind, :], y[ind], w))
+    w = w - h_t
+
+visualize(X, y, w, loss)
+plt.clf()
+
+
+# RMSprop
+np.random.seed(42)
+
+w = np.array([0, 0, 0, 0, 0, 1.])
+
+eta = 0.1 # learning rate
+alpha = 0.9 # moving average of gradient norm squared
+g2 = 0 # we start with None so that you can update this value correctly on the first iteration
+eps = 1e-8
+
+n_iter = 100
+batch_size = 4
+loss = np.zeros(n_iter)
+plt.figure(figsize=(12,5))
+for i in range(n_iter):
+    ind = np.random.choice(X_expanded.shape[0], batch_size)
+    loss[i] = compute_loss(X_expanded, y, w)
+    if i % 10 == 0:
+        visualize(X_expanded[ind, :], y[ind], w, loss)
+
+    g2 = (alpha * g2) + ((1 - alpha) * compute_grad(X_expanded[ind, :], y[ind], w)**2)
+    w = w - ((eta/np.sqrt(g2 + eps))*compute_grad(X_expanded[ind, :], y[ind], w))
+
+visualize(X, y, w, loss)
+plt.clf()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 h = 0.01  # learning rate
