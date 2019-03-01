@@ -55,6 +55,84 @@ assert dummy_expanded.shape == dummy_expanded_ans.shape, "Please make sure the s
 assert np.allclose(dummy_expanded, dummy_expanded_ans, 1e-3), "Something's out of order with features"
 
 
+def probability(X, w):
+    """
+    Given input features and weights
+    return predicted probabilities of y==1 given x, P(y=1|x), see description above
+
+    :param X: feature matrix X of shape [n_samples,6] (expanded)
+    :param w: weight vector w of shape [6] for each of the expanded features
+    :returns: an array of predicted probabilities in [0,1] interval.
+    """
+    return (1 / (1 + np.exp(np.matmul(X, w) * -1)))
+
+
+def compute_loss(X, y, w):
+    """
+    Given feature matrix X [n_samples,6], target vector [n_samples] of 1/0,
+    and weight vector w [6], compute scalar loss function L using formula above.
+    Keep in mind that our loss is averaged over all samples (rows) in X.
+    """
+
+    probs = []
+    for row in range(X.shape[0]):
+        probs.append(probability(X[row, :], w))
+
+    loss = 0
+    for idx, res_val in enumerate(y):
+        loss += -((res_val * np.log(probs[idx])) + ((1 - res_val) * np.log(1 - probs[idx])))
+
+    return (loss / len(y))
+
+
+def compute_grad(X, y, w):
+    """
+    Given feature matrix X [n_samples,6], target vector [n_samples] of 1/0,
+    and weight vector w [6], compute vector [6] of derivatives of L over each weights.
+    Keep in mind that our loss is averaged over all samples (rows) in X.
+    """
+    m = X.shape[0] # num of rows in the dataset
+
+    gradient = np.zeros((X.shape[1]))
+    for idx in range(X.shape[1]):
+        temp_grad = 0
+        for idx_1, res_val in enumerate(y):
+            # gradient of one parameter is calculated in one flow
+            temp_grad += (res_val - probability(X[idx_1,:],w))*(X[idx_1, idx])
+        gradient[idx] = -1 * (1/m) * temp_grad
+    return gradient
+
+
+h = 0.01  # learning rate
+x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
+
+
+def visualize(X, y, w, history):
+    """draws classifier prediction with matplotlib magic"""
+    Z = probability(expand(np.c_[xx.ravel(), yy.ravel()]), w)
+    Z = Z.reshape(xx.shape)
+    plt.subplot(1, 2, 1)
+    plt.contourf(xx, yy, Z, alpha=0.8)
+    plt.scatter(X[:, 0], X[:, 1], c=y, cmap=plt.cm.Paired)
+    plt.xlim(xx.min(), xx.max())
+    plt.ylim(yy.min(), yy.max())
+
+    plt.subplot(1, 2, 2)
+    plt.plot(history)
+    plt.grid()
+    ymin, ymax = plt.ylim()
+    plt.ylim(0, ymax)
+    plt.show()
+
+dummy_weights = np.linspace(-1, 1, 6)
+visualize(X, y, dummy_weights, [0.5, 0.5, 0.25])
+
+
+
+
+
 
 
 
